@@ -10,10 +10,15 @@ export function middleware(req: NextRequest) {
   if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) return NextResponse.next();
   if (PUBLIC_PATHS.includes(pathname)) return NextResponse.next();
 
-  // Allow login/logout routes
-  if (pathname.startsWith("/api/login") || pathname.startsWith("/api/logout")) {
-    return NextResponse.next();
-  }
+// Allow API routes we need without redirecting to /login
+if (
+  pathname.startsWith("/api/login") ||
+  pathname.startsWith("/api/logout") ||
+  pathname.startsWith("/api/health") ||
+  pathname.startsWith("/api/dashboard")
+) {
+  return NextResponse.next();
+}
 
   // Everything else requires session cookie
   const session = req.cookies.get("mktdash_session")?.value;
