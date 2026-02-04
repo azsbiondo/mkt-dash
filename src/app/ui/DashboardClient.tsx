@@ -1,9 +1,43 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Trend = { pct: number; direction: "up" | "down"; tone: "good" | "bad" };
 type Tile = { title: string; value: string | number; subtitle?: string; trend?: Trend };
+
+type ApiKpi = {
+  value?: number;
+  trendPct: number;
+  direction: "up" | "down";
+  tone: "good" | "bad";
+};
+
+type ApiCycle = {
+  valueMinutes: number;
+  trendPct: number;
+  direction: "up" | "down";
+  tone: "good" | "bad";
+};
+
+type ApiRow = {
+  open: ApiKpi;
+  cycle: ApiCycle;
+  completions: ApiKpi;
+  top3: string[];
+};
+
+type DashboardResponse = {
+  asOf: string;
+  pursuits: ApiRow;
+  creative: ApiRow;
+};
+
+function minutesToWorkdayString(totalMinutes: number) {
+  const minutesPerWorkday = 8 * 60;
+  const d = Math.floor(totalMinutes / minutesPerWorkday);
+  const h = Math.floor((totalMinutes % minutesPerWorkday) / 60);
+  return `${d}d ${String(h).padStart(2, "0")}h`;
+}
 
 function TrendPill({ trend }: { trend: Trend }) {
   const isUp = trend.direction === "up";
@@ -61,8 +95,13 @@ function KpiTile({ tile }: { tile: Tile }) {
   );
 }
 
-function Top3Tile({ title }: { title: string }) {
-  const [items, setItems] = useState(["", "", ""]);
+function Top3Tile({ title, items }: { title: string; items: string[] }) {
+  // Still local-only for now; we’ll persist this in Postgres next phase.
+  const [local, setLocal] = useState(items?.length ? items : ["", "", ""]);
+
+  useEffect(() => {
+    setLocal(items?.length ? items : ["", "", ""]);
+  }, [items]);
 
   return (
     <div
@@ -78,15 +117,15 @@ function Top3Tile({ title }: { title: string }) {
       }}
     >
       <div style={{ fontSize: 13, fontWeight: 700, color: "#374151" }}>{title}</div>
-      {items.map((v, i) => (
+      {local.map((v, i) => (
         <input
           key={i}
           value={v}
           placeholder={`#${i + 1}`}
           onChange={(e) => {
-            const next = [...items];
+            const next = [...local];
             next[i] = e.target.value;
-            setItems(next);
+            setLocal(next);
           }}
           style={{
             width: "100%",
@@ -101,41 +140,62 @@ function Top3Tile({ title }: { title: string }) {
   );
 }
 
+function rowToTiles(row: ApiRow, asOf: string) {
+  const openTrend: Trend = { pct: row.open.trendPct, direction: row.open.direction, tone: row.open.tone };
+  const cycleTrend: Trend = { pct: row.cycle.trendPct, direction: row.cycle.direction, tone: row.cycle.tone };
+  const compTrend: Trend = { pct: row.completions.trendPct, direction: row.completions.direction, tone: row.completions.tone };
+
+  const tiles: Tile[] = [
+    { title: "Open Tasks", value: row.open.value ?? 0, subtitle: `As of ${asOf}`, trend: openTrend },
+    {
+      title: "Cycle Time",
+      value: minutesToWorkdayString(row.cycle.valueMinutes ?? 0),
+      subtitle: "Avg (working hours) last 30 days",
+      trend: cycleTrend,
+    },
+    { title: "Completions", value: row.completions.value ?? 0, subtitle: "Completed in last 30 days", trend: compTrend },
+  ];
+
+  return tiles;
+}
+
 export default function DashboardClient() {
   const [asOf, setAsOf] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [data, setData] = useState<DashboardResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   async function logout() {
     await fetch("/api/logout", { method: "POST" });
     window.location.href = "/login";
   }
 
-  const pursuitsTiles: Tile[] = useMemo(
-    () => [
-      { title: "Open Tasks", value: 0, subtitle: `As of ${asOf}`, trend: { pct: 0, direction: "up", tone: "bad" } },
-      {
-        title: "Cycle Time",
-        value: "0d 00h",
-        subtitle: "Avg (working hours) last 30 days",
-        trend: { pct: 0, direction: "down", tone: "good" },
-      },
-      { title: "Completions", value: 0, subtitle: "Completed in last 30 days", trend: { pct: 0, direction: "up", tone: "good" } },
-    ],
-    [asOf]
-  );
+  useEffect(() => {
+    let cancelled = false;
 
-  const creativeTiles: Tile[] = useMemo(
-    () => [
-      { title: "Open Tasks", value: 0, subtitle: `As of ${asOf}`, trend: { pct: 0, direction: "up", tone: "bad" } },
-      {
-        title: "Cycle Time",
-        value: "0d 00h",
-        subtitle: "Avg (working hours) last 30 days",
-        trend: { pct: 0, direction: "down", tone: "good" },
-      },
-      { title: "Completions", value: 0, subtitle: "Completed in last 30 days", trend: { pct: 0, direction: "up", tone: "good" } },
-    ],
-    [asOf]
-  );
+    async function load() {
+      setLoading(true);
+      setErr(null);
+      try {
+        const res = await fetch(`/api/dashboard?asOf=${encodeURIComponent(asOf)}`, { cache: "no-store" });
+        if (!res.ok) throw new Error(`API error: ${res.status}`);
+        const json = (await res.json()) as DashboardResponse;
+        if (!cancelled) setData(json);
+      } catch (e: any) {
+        if (!cancelled) setErr(e?.message ?? "Failed to load dashboard");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [asOf]);
+
+  const pursuitsTiles = useMemo(() => (data ? rowToTiles(data.pursuits, data.asOf) : []), [data]);
+  const creativeTiles = useMemo(() => (data ? rowToTiles(data.creative, data.asOf) : []), [data]);
 
   return (
     <main style={{ padding: 22, background: "#F3F4F6", minHeight: "100vh" }}>
@@ -144,7 +204,9 @@ export default function DashboardClient() {
           <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0, color: "#111827" }}>Marketing Dashboard</h1>
           <div style={{ color: "#6b7280", fontSize: 12, marginTop: 6 }}>
             Report as of (NY): <strong>{asOf}</strong>
+            {loading ? <span style={{ marginLeft: 10 }}>(loading…)</span> : null}
           </div>
+          {err ? <div style={{ marginTop: 6, color: "#b91c1c", fontSize: 12 }}>{err}</div> : null}
         </div>
 
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -158,15 +220,7 @@ export default function DashboardClient() {
             href={`/print?asOf=${asOf}`}
             target="_blank"
             rel="noreferrer"
-            style={{
-              padding: "9px 12px",
-              borderRadius: 10,
-              background: "#111827",
-              color: "white",
-              textDecoration: "none",
-              fontWeight: 700,
-              fontSize: 13,
-            }}
+            style={{ padding: "9px 12px", borderRadius: 10, background: "#111827", color: "white", textDecoration: "none", fontWeight: 700, fontSize: 13 }}
           >
             Print View
           </a>
@@ -182,20 +236,16 @@ export default function DashboardClient() {
       <section style={{ marginBottom: 18 }}>
         <div style={{ fontSize: 14, fontWeight: 800, color: "#111827", marginBottom: 10 }}>Pursuits</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12 }}>
-          {pursuitsTiles.map((t) => (
-            <KpiTile key={t.title} tile={t} />
-          ))}
-          <Top3Tile title="Top 3 (manual)" />
+          {pursuitsTiles.map((t) => <KpiTile key={t.title} tile={t} />)}
+          <Top3Tile title="Top 3 (manual)" items={data?.pursuits?.top3 ?? ["", "", ""]} />
         </div>
       </section>
 
       <section>
         <div style={{ fontSize: 14, fontWeight: 800, color: "#111827", marginBottom: 10 }}>Creative</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12 }}>
-          {creativeTiles.map((t) => (
-            <KpiTile key={t.title} tile={t} />
-          ))}
-          <Top3Tile title="Top 3 (manual)" />
+          {creativeTiles.map((t) => <KpiTile key={t.title} tile={t} />)}
+          <Top3Tile title="Top 3 (manual)" items={data?.creative?.top3 ?? ["", "", ""]} />
         </div>
       </section>
     </main>
