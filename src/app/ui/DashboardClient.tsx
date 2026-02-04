@@ -213,7 +213,7 @@ export default function DashboardClient() {
 
   return (
     <main style={{ padding: 22, background: "#F3F4F6", minHeight: "100vh" }}>
-      <div style={{
+<div style={{
   background: "#F59E0B",
   color: "#111827",
   fontWeight: 900,
@@ -222,8 +222,9 @@ export default function DashboardClient() {
   marginBottom: 12,
   fontSize: 16
 }}>
-  STAMP: DashboardClient UPDATED (should be visible)
+  STAMP: DashboardClient updated (you should see this)
 </div>
+
 
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, marginBottom: 16 }}>
         <div>
