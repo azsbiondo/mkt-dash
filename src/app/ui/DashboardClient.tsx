@@ -96,7 +96,7 @@ function KpiTile({ tile }: { tile: Tile }) {
 }
 
 function Top3Tile({ title, items }: { title: string; items: string[] }) {
-  // Still local-only for now; we’ll persist this in Postgres next phase.
+  // Still local-only for now; next phase we’ll persist in Postgres.
   const [local, setLocal] = useState(items?.length ? items : ["", "", ""]);
 
   useEffect(() => {
@@ -145,7 +145,7 @@ function rowToTiles(row: ApiRow, asOf: string) {
   const cycleTrend: Trend = { pct: row.cycle.trendPct, direction: row.cycle.direction, tone: row.cycle.tone };
   const compTrend: Trend = { pct: row.completions.trendPct, direction: row.completions.direction, tone: row.completions.tone };
 
-  const tiles: Tile[] = [
+  return [
     { title: "Open Tasks", value: row.open.value ?? 0, subtitle: `As of ${asOf}`, trend: openTrend },
     {
       title: "Cycle Time",
@@ -154,9 +154,7 @@ function rowToTiles(row: ApiRow, asOf: string) {
       trend: cycleTrend,
     },
     { title: "Completions", value: row.completions.value ?? 0, subtitle: "Completed in last 30 days", trend: compTrend },
-  ];
-
-  return tiles;
+  ] as Tile[];
 }
 
 export default function DashboardClient() {
