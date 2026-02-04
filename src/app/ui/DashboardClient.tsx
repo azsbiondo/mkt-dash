@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 type Trend = { pct: number; direction: "up" | "down"; tone: "good" | "bad" };
 type Tile = { title: string; value: string | number; subtitle?: string; trend?: Trend };
@@ -13,18 +13,20 @@ function TrendPill({ trend }: { trend: Trend }) {
   const fg = good ? "#166534" : "#991B1B";
 
   return (
-    <span style={{
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      padding: "6px 10px",
-      borderRadius: 999,
-      background: bg,
-      color: fg,
-      fontSize: 12,
-      fontWeight: 700,
-      whiteSpace: "nowrap"
-    }}>
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "6px 10px",
+        borderRadius: 999,
+        background: bg,
+        color: fg,
+        fontSize: 12,
+        fontWeight: 700,
+        whiteSpace: "nowrap",
+      }}
+    >
       <span style={{ fontSize: 12 }}>{isUp ? "▲" : "▼"}</span>
       {Math.abs(trend.pct).toFixed(1)}%
     </span>
@@ -33,16 +35,18 @@ function TrendPill({ trend }: { trend: Trend }) {
 
 function KpiTile({ tile }: { tile: Tile }) {
   return (
-    <div style={{
-      background: "white",
-      border: "1px solid #e5e7eb",
-      borderRadius: 16,
-      padding: 16,
-      minHeight: 150,
-      display: "flex",
-      flexDirection: "column",
-      justifyContent: "space-between"
-    }}>
+    <div
+      style={{
+        background: "white",
+        border: "1px solid #e5e7eb",
+        borderRadius: 16,
+        padding: 16,
+        minHeight: 150,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+      }}
+    >
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: "#374151" }}>{tile.title}</div>
         {tile.trend ? <TrendPill trend={tile.trend} /> : null}
@@ -58,20 +62,21 @@ function KpiTile({ tile }: { tile: Tile }) {
 }
 
 function Top3Tile({ title }: { title: string }) {
-  // Placeholder UI — we’ll wire to DB next
   const [items, setItems] = useState(["", "", ""]);
 
   return (
-    <div style={{
-      background: "white",
-      border: "1px solid #e5e7eb",
-      borderRadius: 16,
-      padding: 16,
-      minHeight: 150,
-      display: "flex",
-      flexDirection: "column",
-      gap: 10
-    }}>
+    <div
+      style={{
+        background: "white",
+        border: "1px solid #e5e7eb",
+        borderRadius: 16,
+        padding: 16,
+        minHeight: 150,
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+      }}
+    >
       <div style={{ fontSize: 13, fontWeight: 700, color: "#374151" }}>{title}</div>
       {items.map((v, i) => (
         <input
@@ -97,28 +102,40 @@ function Top3Tile({ title }: { title: string }) {
 }
 
 export default function DashboardClient() {
-  const [asOf, setAsOf] = useState<string>(() => {
-    // ISO date default (NY time will be enforced server-side later; this is a UI default)
-    const d = new Date();
-    return d.toISOString().slice(0, 10);
-  });
-
-  const pursuitsTiles: Tile[] = useMemo(() => [
-    { title: "Open Tasks", value: 0, subtitle: "As of " + asOf, trend: { pct: 0, direction: "up", tone: "bad" } },
-    { title: "Cycle Time", value: "0d 00h", subtitle: "Avg (working hours) last 30 days", trend: { pct: 0, direction: "down", tone: "good" } },
-    { title: "Completions", value: 0, subtitle: "Completed in last 30 days", trend: { pct: 0, direction: "up", tone: "good" } },
-  ], [asOf]);
-
-  const creativeTiles: Tile[] = useMemo(() => [
-    { title: "Open Tasks", value: 0, subtitle: "As of " + asOf, trend: { pct: 0, direction: "up", tone: "bad" } },
-    { title: "Cycle Time", value: "0d 00h", subtitle: "Avg (working hours) last 30 days", trend: { pct: 0, direction: "down", tone: "good" } },
-    { title: "Completions", value: 0, subtitle: "Completed in last 30 days", trend: { pct: 0, direction: "up", tone: "good" } },
-  ], [asOf]);
+  const [asOf, setAsOf] = useState<string>(() => new Date().toISOString().slice(0, 10));
 
   async function logout() {
     await fetch("/api/logout", { method: "POST" });
     window.location.href = "/login";
   }
+
+  const pursuitsTiles: Tile[] = useMemo(
+    () => [
+      { title: "Open Tasks", value: 0, subtitle: `As of ${asOf}`, trend: { pct: 0, direction: "up", tone: "bad" } },
+      {
+        title: "Cycle Time",
+        value: "0d 00h",
+        subtitle: "Avg (working hours) last 30 days",
+        trend: { pct: 0, direction: "down", tone: "good" },
+      },
+      { title: "Completions", value: 0, subtitle: "Completed in last 30 days", trend: { pct: 0, direction: "up", tone: "good" } },
+    ],
+    [asOf]
+  );
+
+  const creativeTiles: Tile[] = useMemo(
+    () => [
+      { title: "Open Tasks", value: 0, subtitle: `As of ${asOf}`, trend: { pct: 0, direction: "up", tone: "bad" } },
+      {
+        title: "Cycle Time",
+        value: "0d 00h",
+        subtitle: "Avg (working hours) last 30 days",
+        trend: { pct: 0, direction: "down", tone: "good" },
+      },
+      { title: "Completions", value: 0, subtitle: "Completed in last 30 days", trend: { pct: 0, direction: "up", tone: "good" } },
+    ],
+    [asOf]
+  );
 
   return (
     <main style={{ padding: 22, background: "#F3F4F6", minHeight: "100vh" }}>
@@ -141,7 +158,15 @@ export default function DashboardClient() {
             href={`/print?asOf=${asOf}`}
             target="_blank"
             rel="noreferrer"
-            style={{ padding: "9px 12px", borderRadius: 10, background: "#111827", color: "white", textDecoration: "none", fontWeight: 700, fontSize: 13 }}
+            style={{
+              padding: "9px 12px",
+              borderRadius: 10,
+              background: "#111827",
+              color: "white",
+              textDecoration: "none",
+              fontWeight: 700,
+              fontSize: 13,
+            }}
           >
             Print View
           </a>
@@ -157,7 +182,9 @@ export default function DashboardClient() {
       <section style={{ marginBottom: 18 }}>
         <div style={{ fontSize: 14, fontWeight: 800, color: "#111827", marginBottom: 10 }}>Pursuits</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12 }}>
-          {pursuitsTiles.map((t) => <KpiTile key={t.title} tile={t} />)}
+          {pursuitsTiles.map((t) => (
+            <KpiTile key={t.title} tile={t} />
+          ))}
           <Top3Tile title="Top 3 (manual)" />
         </div>
       </section>
@@ -165,7 +192,9 @@ export default function DashboardClient() {
       <section>
         <div style={{ fontSize: 14, fontWeight: 800, color: "#111827", marginBottom: 10 }}>Creative</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12 }}>
-          {creativeTiles.map((t) => <KpiTile key={t.title} tile={t} />)}
+          {creativeTiles.map((t) => (
+            <KpiTile key={t.title} tile={t} />
+          ))}
           <Top3Tile title="Top 3 (manual)" />
         </div>
       </section>
