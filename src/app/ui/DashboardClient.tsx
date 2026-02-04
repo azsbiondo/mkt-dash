@@ -60,6 +60,7 @@ function TrendPill({ trend }: { trend: Trend }) {
         fontWeight: 700,
         whiteSpace: "nowrap",
       }}
+      title={`${trend.direction.toUpperCase()} ${trend.pct.toFixed(2)}% (${trend.tone})`}
     >
       <span style={{ fontSize: 12 }}>{isUp ? "▲" : "▼"}</span>
       {Math.abs(trend.pct).toFixed(1)}%
@@ -163,6 +164,11 @@ export default function DashboardClient() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  // Debug helpers so we can *prove* the fetch is happening in your Network tab
+  const [lastFetchUrl, setLastFetchUrl] = useState<string | null>(null);
+  const [lastStatus, setLastStatus] = useState<number | null>(null);
+  const [showDebug, setShowDebug] = useState(false);
+
   async function logout() {
     await fetch("/api/logout", { method: "POST" });
     window.location.href = "/login";
@@ -172,11 +178,21 @@ export default function DashboardClient() {
     let cancelled = false;
 
     async function load() {
+      const url = `/api/dashboard?asOf=${encodeURIComponent(asOf)}`;
+      setLastFetchUrl(url);
+
+      // This log should appear in DevTools Console if the client bundle is updated.
+      console.log("[mkt-dash] fetching:", url);
+
       setLoading(true);
       setErr(null);
+
       try {
-        const res = await fetch(`/api/dashboard?asOf=${encodeURIComponent(asOf)}`, { cache: "no-store" });
+        const res = await fetch(url, { cache: "no-store" });
+        setLastStatus(res.status);
+
         if (!res.ok) throw new Error(`API error: ${res.status}`);
+
         const json = (await res.json()) as DashboardResponse;
         if (!cancelled) setData(json);
       } catch (e: any) {
@@ -199,7 +215,9 @@ export default function DashboardClient() {
     <main style={{ padding: 22, background: "#F3F4F6", minHeight: "100vh" }}>
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, marginBottom: 16 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0, color: "#111827" }}>Marketing Dashboard</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0, color: "#111827" }}>
+            Marketing Dashboard
+          </h1>
           <div style={{ color: "#6b7280", fontSize: 12, marginTop: 6 }}>
             Report as of (NY): <strong>{asOf}</strong>
             {loading ? <span style={{ marginLeft: 10 }}>(loading…)</span> : null}
@@ -222,6 +240,14 @@ export default function DashboardClient() {
           >
             Print View
           </a>
+
+          <button
+            onClick={() => setShowDebug((v) => !v)}
+            style={{ padding: "9px 12px", borderRadius: 10, border: "1px solid #d1d5db", background: "white", fontWeight: 700, fontSize: 13 }}
+          >
+            Debug
+          </button>
+
           <button
             onClick={logout}
             style={{ padding: "9px 12px", borderRadius: 10, border: "1px solid #d1d5db", background: "white", fontWeight: 700, fontSize: 13 }}
@@ -230,6 +256,25 @@ export default function DashboardClient() {
           </button>
         </div>
       </header>
+
+      {showDebug ? (
+        <div
+          style={{
+            background: "white",
+            border: "1px solid #e5e7eb",
+            borderRadius: 12,
+            padding: 12,
+            marginBottom: 12,
+            fontSize: 12,
+            color: "#111827",
+          }}
+        >
+          <div><strong>Last fetch URL:</strong> {lastFetchUrl ?? "(none)"}</div>
+          <div><strong>Last status:</strong> {lastStatus ?? "(none)"} </div>
+          <div><strong>Has data:</strong> {data ? "yes" : "no"}</div>
+          <div><strong>Tip:</strong> In DevTools → Network, filter by “Fetch/XHR” or search “dashboard”.</div>
+        </div>
+      ) : null}
 
       <section style={{ marginBottom: 18 }}>
         <div style={{ fontSize: 14, fontWeight: 800, color: "#111827", marginBottom: 10 }}>Pursuits</div>
