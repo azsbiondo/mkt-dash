@@ -17,7 +17,7 @@ export async function GET(req: Request) {
     cyclePrevMinutes: 9 * 8 * 60,
     completionsNow: 41,
     completionsPrev: 36,
-    top3: ["", "", ""],
+    top3: ["Pursuit A", "Pursuit B", "Pursuit C"],
   };
 
   const creative = {
@@ -27,7 +27,7 @@ export async function GET(req: Request) {
     cyclePrevMinutes: 3 * 8 * 60 + 6 * 60,
     completionsNow: 22,
     completionsPrev: 19,
-    top3: ["", "", ""],
+    top3: ["Creative A", "Creative B", "Creative C"],
   };
 
   const payload = {
@@ -37,19 +37,19 @@ export async function GET(req: Request) {
         value: pursuits.openNow,
         trendPct: pctChange(pursuits.openNow, pursuits.openPrev),
         direction: pursuits.openNow >= pursuits.openPrev ? "up" : "down",
-        tone: pursuits.openNow >= pursuits.openPrev ? "bad" : "good",
+        tone: pursuits.openNow >= pursuits.openPrev ? "bad" : "good", // open backlog up is bad
       },
       cycle: {
         valueMinutes: pursuits.cycleNowMinutes,
         trendPct: pctChange(pursuits.cycleNowMinutes, pursuits.cyclePrevMinutes),
         direction: pursuits.cycleNowMinutes >= pursuits.cyclePrevMinutes ? "up" : "down",
-        tone: pursuits.cycleNowMinutes >= pursuits.cyclePrevMinutes ? "bad" : "good",
+        tone: pursuits.cycleNowMinutes >= pursuits.cyclePrevMinutes ? "bad" : "good", // cycle time down is good
       },
       completions: {
         value: pursuits.completionsNow,
         trendPct: pctChange(pursuits.completionsNow, pursuits.completionsPrev),
         direction: pursuits.completionsNow >= pursuits.completionsPrev ? "up" : "down",
-        tone: pursuits.completionsNow >= pursuits.completionsPrev ? "good" : "bad",
+        tone: pursuits.completionsNow >= pursuits.completionsPrev ? "good" : "bad", // completions up is good
       },
       top3: pursuits.top3,
     },
