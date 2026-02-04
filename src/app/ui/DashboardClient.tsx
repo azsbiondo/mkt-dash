@@ -1,4 +1,5 @@
 "use client";
+throw new Error("TEST: DashboardClient.tsx is executing");
 
 import { useEffect, useMemo, useState } from "react";
 
