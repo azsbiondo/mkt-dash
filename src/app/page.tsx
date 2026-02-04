@@ -1,3 +1,7 @@
-export default function Home() {
-  return <div style={{ padding: 40, fontSize: 32 }}>MARKER: src/app/page.tsx is loading ✅</div>;
+export default function HomePage() {
+  return (
+    <div style={{ padding: 40, fontSize: 28, fontWeight: 900, background: "#A7F3D0" }}>
+      STAMP: src/app/page.tsx is definitely being served ✅
+    </div>
+  );
 }
