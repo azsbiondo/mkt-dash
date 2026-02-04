@@ -1,9 +1,3 @@
-import DashboardClient from "./ui/DashboardClient";
-
-export const metadata = {
-  title: "Marketing Dashboard",
-};
-
-export default function HomePage() {
-  return <DashboardClient />;
+export default function Home() {
+  return <div style={{ padding: 40, fontSize: 32 }}>MARKER: src/app/page.tsx is loading ✅</div>;
 }
